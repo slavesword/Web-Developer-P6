@@ -137,5 +137,27 @@ exports.getAllStuff = (req, res, next) => {
 //     sauce. Total number of likes and dislikes to be updated with each like.
 
 exports.getLikes = (req, res, next) => {
-  
+  let sauce = new Sauce({ _id: req.params._id });
+  if (req.file) {
+    req.body.sauce = JSON.parse(req.body.sauce);
+    sauce = {
+      _id: req.params.id,
+      likes: + 1
+    };
+  } else {
+    sauce = {
+      likes: 0
+    };
+  }
+  Sauce.updateOne({ _id: req.params.id }, sauce)
+    .then(() => {
+      res.status(201).json({
+        message: "like updated successfully!",
+      });
+    })
+    .catch((error) => {
+      res.status(400).json({
+        error: error,
+      });
+    });
 };
