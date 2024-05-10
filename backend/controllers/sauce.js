@@ -28,7 +28,7 @@ exports.createSauce = (req, res, next) => {
     likes: 0,
     dislikes: 0,
     usersLiked: [],
-    usersDisliked: [],
+    usersDisliked: []
   });
   sauce
     .save()
@@ -65,20 +65,21 @@ exports.modifySauce = (req, res, next) => {
     req.body.sauce = JSON.parse(req.body.sauce);
     sauce = {
       _id: req.params.id,
-      title: req.body.sauce.title,
+      name: req.body.sauce.name,
+      manufacturer: req.body.sauce.manufacturer,
       description: req.body.sauce.description,
+      mainPepper: req.body.sauce.mainPepper,
       imageUrl: url + "/images/" + req.file.filename,
-      price: req.body.sauce.price,
-      userId: req.body.sauce.userId,
+      heat: req.body.sauce.heat
     };
   } else {
     sauce = {
-      _id: req.params.id,
-      title: req.body.title,
+      name: req.body.name,
+      manufacturer: req.body.manufacturer,
       description: req.body.description,
+      mainPepper: req.body.mainPepper,
       imageUrl: req.body.imageUrl,
-      price: req.body.price,
-      userId: req.body.userId,
+      heat: req.body.heat
     };
   }
   Sauce.updateOne({ _id: req.params.id }, sauce)
@@ -135,4 +136,6 @@ exports.getAllStuff = (req, res, next) => {
 //     from liking or disliking the same sauce multiple times: one user can only have one value for each
 //     sauce. Total number of likes and dislikes to be updated with each like.
 
-// exports.getLikes = 
+exports.getLikes = (req, res, next) => {
+  
+};
