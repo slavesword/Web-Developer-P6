@@ -1,7 +1,7 @@
 const Sauce = require("../models/sauce");
-const fs = require('fs');
-
-
+const fs = require("fs");
+const jwt = require("jsonwebtoken");
+const sauce = require("../models/sauce");
 
 exports.createSauce = (req, res, next) => {
   req.body.sauce = JSON.parse(req.body.sauce);
@@ -28,7 +28,7 @@ exports.createSauce = (req, res, next) => {
     likes: 0,
     dislikes: 0,
     usersLiked: [],
-    usersDisliked: []
+    usersDisliked: [],
   });
   sauce
     .save()
@@ -59,7 +59,12 @@ exports.getOneSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
+  const token = req.headers.authorization.split(" ")[1];
+  const decodedToken = jwt.verify(token, "RANDOM_TOKEN_SECRET");
+  const userId = decodedToken.userId;
+
   let sauce = new Sauce({ _id: req.params._id });
+
   if (req.file) {
     const url = req.protocol + "://" + req.get("host");
     req.body.sauce = JSON.parse(req.body.sauce);
@@ -70,7 +75,7 @@ exports.modifySauce = (req, res, next) => {
       description: req.body.sauce.description,
       mainPepper: req.body.sauce.mainPepper,
       imageUrl: url + "/images/" + req.file.filename,
-      heat: req.body.sauce.heat
+      heat: req.body.sauce.heat,
     };
   } else {
     sauce = {
@@ -79,7 +84,7 @@ exports.modifySauce = (req, res, next) => {
       description: req.body.description,
       mainPepper: req.body.mainPepper,
       imageUrl: req.body.imageUrl,
-      heat: req.body.heat
+      heat: req.body.heat,
     };
   }
   Sauce.updateOne({ _id: req.params.id }, sauce)
@@ -96,27 +101,23 @@ exports.modifySauce = (req, res, next) => {
 };
 
 exports.deleteSauce = (req, res, next) => {
-    Sauce.findOne({_id: req.params.id}).then(
-      (sauce) => {
-        const filename = sauce.imageUrl.split('/images/')[1];
-        fs.unlink('images/' + filename, () => {
-          Sauce.deleteOne({_id: req.params.id}).then(
-            () => {
-              res.status(200).json({
-                message: 'Deleted!'
-              });
-            }
-          ).catch(
-            (error) => {
-              res.status(400).json({
-                error: error
-              });
-            }
-          );
+  Sauce.findOne({ _id: req.params.id }).then((sauce) => {
+    const filename = sauce.imageUrl.split("/images/")[1];
+    fs.unlink("images/" + filename, () => {
+      Sauce.deleteOne({ _id: req.params.id })
+        .then(() => {
+          res.status(200).json({
+            message: "Deleted!",
+          });
+        })
+        .catch((error) => {
+          res.status(400).json({
+            error: error,
+          });
         });
-      }
-    );
-  };
+    });
+  });
+};
 
 exports.getAllStuff = (req, res, next) => {
   Sauce.find()
@@ -130,26 +131,52 @@ exports.getAllStuff = (req, res, next) => {
     });
 };
 
-//     Sets “like'' status for the userId provided. If like = 1, the user likes the sauce. If like = 0, the user 
-//     is canceling their like or dislike. If like = -1, the user dislikes the sauce. The user's ID must be
-//     added to or removed from the appropriate array. This keeps track of their preferences and prevents them 
-//     from liking or disliking the same sauce multiple times: one user can only have one value for each
-//     sauce. Total number of likes and dislikes to be updated with each like.
+exports.likesHandler = (req, res, next) => {
+  const react = req.body.like;
+  const token = req.headers.authorization.split(" ")[1];
+  const decodedToken = jwt.verify(token, "RANDOM_TOKEN_SECRET");
+  const userId = decodedToken.userId;
+  // let sauce = new Sauce({ _id: req.params._id });
 
-exports.getLikes = (req, res, next) => {
-  let sauce = new Sauce({ _id: req.params._id });
-  if (req.file) {
-    req.body.sauce = JSON.parse(req.body.sauce);
-    sauce = {
-      _id: req.params.id,
-      likes: + 1
-    };
-  } else {
-    sauce = {
-      likes: 0
-    };
+  Sauce.findOne({
+    _id: req.params.id,
+  })
+  .then((sauce) => {
+  const usersLiked = sauce.usersLiked;
+  const usersDisliked = sauce.usersDisliked;
+  const likes = sauce.likes;
+  const dislikes = sauce.usersDisliked;
+  
+
+  switch (react) {
+    case 1:
+      sauce.likes++;
+      sauce.usersLiked.push(userId);
+      console.log(sauce);
+      break;
+    case -1:
+      sauce.dislikes++;
+      sauce.usersDisliked.push(userId);
+      console.log(sauce);
+      break;
+    case 0:
+      if (usersLiked.includes(userId)) {
+        usersLiked = usersLiked.filter((element) => element !== userId);
+        likes = -1;
+      } else if (usersDisliked.includes(userId)) {
+        usersDisliked = usersDisliked.filter((element) => element !== userId);
+        dislikes = -1;
+      }
+      console.log(sauce);
+      break;
+    default:
+      res.status(400).json({
+        error: "error invalid like parameter. Like must be 1, -1 or 0",
+      });
   }
-  Sauce.updateOne({ _id: req.params.id }, sauce)
+  });
+
+  Sauce.updateOne({ _id: req.params.id, sauce })
     .then(() => {
       res.status(201).json({
         message: "like updated successfully!",
@@ -160,4 +187,42 @@ exports.getLikes = (req, res, next) => {
         error: error,
       });
     });
+
+  // extract the sauce from ID url (params) and then get the sauce
+
+  // let sauce = new Sauce({ _id: req.params._id });
+  // if (req.file) {
+  // req.body.sauce = JSON.parse(req.body.sauce);
+  // sauce = {
+  //   _id: req.params.id,
+  //   likes: + 1,
+  //   usersLiked: sauce.usersLiked.push(userId)
+  // };
+  // } else {
+  //   sauce = {
+  //     likes: 0
+  //   };
+  // }
+  // Sauce.findOne({
+  //   _id: req.params.id,
+
+  // }).then(() => {
+  //   req.body.sauce = JSON.parse(req.body.sauce);
+  //   sauce = {
+  //     likes: req.body.sauce.id +1,
+  //     dislikes: req.body.id +1
+  //   };
+  // })
+
+  // Sauce.updateOne({ _id: req.params.id }, sauce)
+  //   .then(() => {
+  //     res.status(201).json({
+  //       message: "like updated successfully!",
+  //     });
+  //   })
+  // .catch((error) => {
+  //   res.status(400).json({
+  //     error: error,
+  //   });
+  // });
 };
