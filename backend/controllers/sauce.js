@@ -140,53 +140,48 @@ exports.likesHandler = (req, res, next) => {
 
   Sauce.findOne({
     _id: req.params.id,
-  })
-  .then((sauce) => {
-  const usersLiked = sauce.usersLiked;
-  const usersDisliked = sauce.usersDisliked;
-  const likes = sauce.likes;
-  const dislikes = sauce.usersDisliked;
-  
+  }).then((sauce) => {
+    let usersDisliked = sauce.usersDisliked;
+    let likes = sauce.likes;
+    let dislikes = sauce.dislikes;
 
-  switch (react) {
-    case 1:
-      sauce.likes++;
-      sauce.usersLiked.push(userId);
-      console.log(sauce);
-      break;
-    case -1:
-      sauce.dislikes++;
-      sauce.usersDisliked.push(userId);
-      console.log(sauce);
-      break;
-    case 0:
-      if (usersLiked.includes(userId)) {
-        usersLiked = usersLiked.filter((element) => element !== userId);
-        likes = -1;
-      } else if (usersDisliked.includes(userId)) {
-        usersDisliked = usersDisliked.filter((element) => element !== userId);
-        dislikes = -1;
-      }
-      console.log(sauce);
-      break;
-    default:
-      res.status(400).json({
-        error: "error invalid like parameter. Like must be 1, -1 or 0",
+    switch (react) {
+      case 1:
+        sauce.likes++;
+        sauce.usersLiked.push(userId);
+        break;
+      case -1:
+        sauce.dislikes++;
+        usersDisliked.push(userId);
+        break;
+      case 0:
+        if (sauce.usersLiked.includes(userId)) {
+          sauce.usersLiked = sauce.usersLiked.filter((element) => element != userId);
+          console.log(sauce.usersLiked);
+          sauce.likes--;
+        } else if (sauce.usersDisliked.includes(userId)) {
+          sauce.usersDisliked = sauce.usersDisliked.filter((element) => element != userId);
+          sauce.dislikes--;
+        }
+        break;
+      default:
+        res.status(400).json({
+          error: "error invalid like parameter. Like must be 1, -1 or 0",
+        });
+    }
+    console.log(sauce);
+    Sauce.updateOne({ _id: req.params.id }, sauce)
+      .then(() => {
+        res.status(201).json({
+          message: "like updated successfully!",
+        });
+      })
+      .catch((error) => {
+        res.status(400).json({
+          error: error,
+        });
       });
-  }
   });
-
-  Sauce.updateOne({ _id: req.params.id, sauce })
-    .then(() => {
-      res.status(201).json({
-        message: "like updated successfully!",
-      });
-    })
-    .catch((error) => {
-      res.status(400).json({
-        error: error,
-      });
-    });
 
   // extract the sauce from ID url (params) and then get the sauce
 
