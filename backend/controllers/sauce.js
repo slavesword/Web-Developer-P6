@@ -1,23 +1,11 @@
 const Sauce = require("../models/sauce");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const sauce = require("../models/sauce");
 
 exports.createSauce = (req, res, next) => {
   req.body.sauce = JSON.parse(req.body.sauce);
   const url = req.protocol + "://" + req.get("host");
   const sauce = new Sauce({
-    // userId: { type: String, required: true },
-    // name: { type: String, required: true },
-    // manufacturer: { type: String, required: true },
-    // description: { type: String, required: true },
-    // mainPepper: { type: String, required: true },
-    // imageUrl: { type: String, required: true },
-    // heat: { type: Number, required: true },
-    // likes: { type: Number, required: true },
-    // dislikes: { type: Number, required: true },
-    // usersLiked: { type: ["String <userId>"], required: true },
-    // usersDisliked: { type: ["String <userId>"], required: true },
     userId: req.body.sauce.userId,
     name: req.body.sauce.name,
     manufacturer: req.body.sauce.manufacturer,
@@ -59,10 +47,6 @@ exports.getOneSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
-  const token = req.headers.authorization.split(" ")[1];
-  const decodedToken = jwt.verify(token, "RANDOM_TOKEN_SECRET");
-  const userId = decodedToken.userId;
-
   let sauce = new Sauce({ _id: req.params._id });
 
   if (req.file) {
@@ -136,15 +120,11 @@ exports.likesHandler = (req, res, next) => {
   const token = req.headers.authorization.split(" ")[1];
   const decodedToken = jwt.verify(token, "RANDOM_TOKEN_SECRET");
   const userId = decodedToken.userId;
-  // let sauce = new Sauce({ _id: req.params._id });
 
   Sauce.findOne({
     _id: req.params.id,
   }).then((sauce) => {
     let usersDisliked = sauce.usersDisliked;
-    let likes = sauce.likes;
-    let dislikes = sauce.dislikes;
-
     switch (react) {
       case 1:
         sauce.likes++;
@@ -182,42 +162,4 @@ exports.likesHandler = (req, res, next) => {
         });
       });
   });
-
-  // extract the sauce from ID url (params) and then get the sauce
-
-  // let sauce = new Sauce({ _id: req.params._id });
-  // if (req.file) {
-  // req.body.sauce = JSON.parse(req.body.sauce);
-  // sauce = {
-  //   _id: req.params.id,
-  //   likes: + 1,
-  //   usersLiked: sauce.usersLiked.push(userId)
-  // };
-  // } else {
-  //   sauce = {
-  //     likes: 0
-  //   };
-  // }
-  // Sauce.findOne({
-  //   _id: req.params.id,
-
-  // }).then(() => {
-  //   req.body.sauce = JSON.parse(req.body.sauce);
-  //   sauce = {
-  //     likes: req.body.sauce.id +1,
-  //     dislikes: req.body.id +1
-  //   };
-  // })
-
-  // Sauce.updateOne({ _id: req.params.id }, sauce)
-  //   .then(() => {
-  //     res.status(201).json({
-  //       message: "like updated successfully!",
-  //     });
-  //   })
-  // .catch((error) => {
-  //   res.status(400).json({
-  //     error: error,
-  //   });
-  // });
 };
