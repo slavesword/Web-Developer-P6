@@ -47,38 +47,58 @@ exports.getOneSauce = (req, res, next) => {
 };
 
 exports.modifySauce = (req, res, next) => {
-  let sauce = new Sauce({ _id: req.params._id });
+  Sauce.findOne({ _id: req.params.id })
+    .then((existingSauce) => {
+      if (!existingSauce) {
+        return res.status(404).json({ message: 'Sauce not found!' });
+      }
 
-  if (req.file) {
-    const url = req.protocol + "://" + req.get("host");
-    req.body.sauce = JSON.parse(req.body.sauce);
-    sauce = {
-      _id: req.params.id,
-      name: req.body.sauce.name,
-      manufacturer: req.body.sauce.manufacturer,
-      description: req.body.sauce.description,
-      mainPepper: req.body.sauce.mainPepper,
-      imageUrl: url + "/images/" + req.file.filename,
-      heat: req.body.sauce.heat,
-    };
-  } else {
-    sauce = {
-      name: req.body.name,
-      manufacturer: req.body.manufacturer,
-      description: req.body.description,
-      mainPepper: req.body.mainPepper,
-      imageUrl: req.body.imageUrl,
-      heat: req.body.heat,
-    };
-  }
-  Sauce.updateOne({ _id: req.params.id }, sauce)
-    .then(() => {
-      res.status(201).json({
-        message: "Sauce updated successfully!",
-      });
+      let sauce;
+
+      if (req.file) {
+        const url = req.protocol + "://" + req.get("host");
+        req.body.sauce = JSON.parse(req.body.sauce);
+        sauce = {
+          _id: req.params.id,
+          name: req.body.sauce.name,
+          manufacturer: req.body.sauce.manufacturer,
+          description: req.body.sauce.description,
+          mainPepper: req.body.sauce.mainPepper,
+          imageUrl: url + "/images/" + req.file.filename,
+          heat: req.body.sauce.heat,
+        };
+
+        const oldImageUrl = existingSauce.imageUrl;
+        const oldImageFilename = oldImageUrl.split('/images/')[1];
+        fs.unlink('images/' + oldImageFilename, (err) => {
+          if (err) console.log(err);
+        });
+      } else {
+        sauce = {
+          _id: req.params.id,
+          name: req.body.name,
+          manufacturer: req.body.manufacturer,
+          description: req.body.description,
+          mainPepper: req.body.mainPepper,
+          imageUrl: req.body.imageUrl,
+          heat: req.body.heat,
+        };
+      }
+
+      Sauce.updateOne({ _id: req.params.id }, sauce)
+        .then(() => {
+          res.status(200).json({
+            message: "Sauce updated successfully!",
+          });
+        })
+        .catch((error) => {
+          res.status(400).json({
+            error: error,
+          });
+        });
     })
     .catch((error) => {
-      res.status(400).json({
+      res.status(500).json({
         error: error,
       });
     });
@@ -137,7 +157,6 @@ exports.likesHandler = (req, res, next) => {
       case 0:
         if (sauce.usersLiked.includes(userId)) {
           sauce.usersLiked = sauce.usersLiked.filter((element) => element != userId);
-          console.log(sauce.usersLiked);
           sauce.likes--;
         } else if (sauce.usersDisliked.includes(userId)) {
           sauce.usersDisliked = sauce.usersDisliked.filter((element) => element != userId);
@@ -149,7 +168,6 @@ exports.likesHandler = (req, res, next) => {
           error: "error invalid like parameter. Like must be 1, -1 or 0",
         });
     }
-    console.log(sauce);
     Sauce.updateOne({ _id: req.params.id }, sauce)
       .then(() => {
         res.status(201).json({
